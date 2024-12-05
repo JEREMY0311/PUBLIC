@@ -1,0 +1,62 @@
+# escriba una funcion que lea un correo electronico y lo valide
+# un correo valido debe tener las sgtes caracteristicas:
+
+# debe tener la siguiente estructura : usuario@dominio
+# debe tener 1 solo @
+# el dominio termina en .com .net .org .edu .pe
+# usuario y el dominio solo pueden tener numeros, letras o puntos
+# en el dominio no puede haber 2 o más puntos consecutivos
+# el usuario empieza en letra
+# el dominio empieza en letra
+# el usuario debe tener al menos 3 caracteres
+# el dominio debe tener al menos 6 caracteres
+def correo_valido(correo):
+    arroba_pos=-1
+    for i in range(len(correo)):
+        if correo[i]=="@":
+            if arroba_pos !=-1:
+                return False
+            arroba_pos=i 
+    if arroba_pos ==-1: 
+       return False
+    usuario=correo[:arroba_pos]
+    dominio=correo[arroba_pos+1:]
+
+    if len(usuario)>=3 and usuario[0].isalpha():
+        pass
+    else:
+        return False
+
+    if len(dominio)>=6 and dominio[0].isalpha():
+        pass 
+    else:
+        return False
+    extensiones_validas=[".com",".net",".org",".edu",".pe"]
+    for c in dominio:
+        if c.isalpha() or c.isdigit() or c==".":
+            pass
+        else:
+            return False
+    if dominio[-4:] in extensiones_validas or dominio[-3:] == ".pe":
+        return True
+
+        
+
+while True:
+    correo=input("ingrese un correo electronico").strip()
+    if correo_valido(correo):
+        print("es correo valido")
+    else:
+        print("correo invalido")
+
+    
+
+
+
+
+
+
+
+
+
+
