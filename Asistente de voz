@@ -1,0 +1,140 @@
+import speech_recognition as sr
+import pyttsx3
+import webbrowser
+import os
+import urllib.parse
+import datetime
+from playsound import playsound
+from googleapiclient.discovery import build
+
+webbrowser.register('brave', None, webbrowser.BackgroundBrowser("C://Program Files//BraveSoftware//Brave-Browser//Application//brave.exe"))
+
+voz = pyttsx3.init()
+reconocedor = sr.Recognizer()
+historial = []
+
+def hablar(texto):
+    voz.stop()
+    voz.say(texto)
+    voz.runAndWait()
+
+def reproducir_sonido_activacion():
+    try:
+        playsound("notification-ping-335500 ")
+    except:
+        print("No se pudo reproducir el sonido de activación")
+
+def buscador_web(texto, solo_youtube=False):
+    palabras_a_eliminar = ["busca en google", "buscar", "busca", "reproduce", "pon", "quiero escuchar"]
+    consulta = texto.lower()
+    
+    for palabra in palabras_a_eliminar:
+        consulta = consulta.replace(palabra, "").strip()
+    
+    if not consulta:
+        return "No especificaste qué buscar"
+    
+    if solo_youtube:
+        consulta += " site:youtube.com"
+    
+    consulta_codificada = urllib.parse.quote_plus(consulta)
+    url = f"https://www.google.com/search?q={consulta_codificada}"
+    webbrowser.get("brave").open(url)
+    
+    return "Buscando: " + consulta
+
+def abri_programas(texto):
+    programas = {
+        "calculadora": "calc",
+        "word": r"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE",
+        "navegador": "start chrome",
+        "bloc de notas": "notepad",
+        "paint": "mspaint",
+        "dota 2": "start steam://rungameid/570",
+        "dota": "start steam://rungameid/570",
+        "apple music": "start shell:AppsFolder\\AppleInc.AppleMusicWin_nzyj5cx40ttqa!App",
+        "itunes": r"C:\Program Files\iTunes\iTunes.exe"
+    }
+
+    for palabra, comando in programas.items():
+        if palabra in texto.lower():
+            try:
+                if comando.startswith("start "):
+                    os.system(comando)
+                else:
+                    os.startfile(comando)
+                return f'Listo, abriendo {palabra}'
+            except Exception as e:
+                return f'Error al abrir {palabra}: {str(e)}'
+
+    return 'No reconozco ese programa'
+
+def reproducir_youtube_api(texto):
+    frases_a_eliminar = ["reproducir", "pon", "quiero escuchar", "ponme", "coloca"]
+    for frase in frases_a_eliminar:
+        texto = texto.replace(frase, "").strip()
+    
+    if not texto:
+        return "No entendí qué música quieres"
+
+    api_key = "AIzaSyBydlJerLWy4pmvA0GeHNMg_UU5Gtgdvuo"  # Tu propia clave de API
+
+    try:
+        youtube = build("youtube", "v3", developerKey=api_key)
+        solicitud = youtube.search().list(
+            part="snippet",
+            q=texto,
+            type="video",
+            maxResults=1
+        )
+        respuesta = solicitud.execute()
+
+        if respuesta["items"]:
+            video_id = respuesta["items"][0]["id"]["videoId"]
+            video_url = f"https://www.youtube.com/watch?v={video_id}"
+            webbrowser.get("brave").open(video_url)
+            return "Reproduciendo en YouTube: " + texto
+        else:
+            return "No encontré ningún video"
+
+    except Exception as e:
+        return "Error al usar la API de YouTube: " + str(e)
+
+# SALUDO AL INICIO
+hablar("Hola, soy Jarvis. Estoy listo para ayudarte")
+
+# CICLO PRINCIPAL SIN PALABRA CLAVE
+while True:
+    with sr.Microphone() as origen:
+        print("Esperando comando...")
+        try:
+            audio = reconocedor.listen(origen, timeout=60, phrase_time_limit=10)
+            texto = reconocedor.recognize_google(audio, language="es-PE").lower()
+            historial.append(texto)
+            print("Comando:", texto)
+
+            reproducir_sonido_activacion()
+
+            if "salir" in texto:
+                hablar("Eso es todo humano. Hasta pronto")
+                break
+            elif "hora" in texto:
+                hora_actual = datetime.datetime.now().strftime("%H:%M")
+                hablar("La hora actual es " + hora_actual)
+            elif "buscar" in texto or "busca" in texto:
+                respuesta = buscador_web(texto)
+                hablar(respuesta)
+            elif "abrir" in texto:
+                respuesta = abri_programas(texto)
+                hablar(respuesta)
+            elif "reproduce" in texto or "pon" in texto or "quiero escuchar" in texto:
+                respuesta = reproducir_youtube_api(texto)
+                hablar(respuesta)
+            else:
+                hablar("No entendí ese comando")
+        except sr.UnknownValueError:
+            hablar("No entendí lo que dijiste")
+        except sr.WaitTimeoutError:
+            print("Tiempo de espera agotado")
+        except Exception as e:
+            print("Error:", str(e))
